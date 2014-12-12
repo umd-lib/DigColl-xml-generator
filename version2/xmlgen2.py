@@ -119,31 +119,26 @@ def getRightsScheme():
     while schemeSelection not in ["P", "R", "C", "M"]:
         schemeSelection = input("You must enter P, R, C, or M!")
     if schemeSelection == "P":
-        results['amInfoStatus'] =           "Complete"
-        results['doInfoStatus'] =           "Complete"
-        results['adminRightsAccess'] =      "UMDPublic"
+        results['amInfoStatus'] = "Complete"
+        results['doInfoStatus'] = "Complete"
+        results['adminRightsAccess'] = "UMDPublic"
     elif schemeSelection == "R":
-        results['amInfoStatus'] =           "Complete"
-        results['doInfoStatus'] =           "Private"
-        results['adminRightsAccess'] =      "UMDfilms00001"
+        results['amInfoStatus'] = "Complete"
+        results['doInfoStatus'] = "Private"
+        results['adminRightsAccess'] = "UMDfilms00001"
     elif schemeSelection == "C":
-        results['amInfoStatus'] =           "Complete"
-        results['doInfoStatus'] =           "Complete"
-        results['adminRightsAccess'] =      "UMDfilms00001"
+        results['amInfoStatus'] = "Complete"
+        results['doInfoStatus'] = "Complete"
+        results['adminRightsAccess'] = "UMDfilms00001"
     elif schemeSelection == "M":
-        results['amInfoStatus'] =           "Complete"
-        results['doInfoStatus'] =           "Private"
-        results['adminRightsAccess'] =      "UMDfilms00001"
+        results['amInfoStatus'] = "Complete"
+        results['doInfoStatus'] = "Private"
+        results['adminRightsAccess'] = "UMDfilms00001"
     else:
         print("Sorry, something went wrong with the rights selection!")
         exit
     return results
-
-
-# Generates the mediaType XML tag, wrapping it around the form XML tag      
-def generateMediaTypeTag(mediaType, formType, form):
-    return '<mediaType type="{0}"><form type="{1}">{2}</form></mediaType>'.format(mediaType, formType, form)
-
+        
 
 # Generates the specific XML tags based on dating information stored in the myDate dictionary
 # previously returned by the parseDate function.
@@ -213,31 +208,6 @@ def generateBrowseTerms(inputSubjects):
     return '\n'.join(result)
 
 
-# generate subject terms from the three subject columns of the data
-def generateTopicalSubjects(**kwargs):
-    result = []
-    for key, value in kwargs.items():
-        if value != '':
-            for i in value.split(;):
-                if key == "pers":
-                    element = ('<persName>{0}</persName>'.format(i.strip())
-                elif key == "corp":
-                    element = ('<corpName>{0}</corpName>'.format(i.strip())
-                else:
-                    element = i.strip()
-                result.append('<subject type="topical">{0}</subject>'.format(element))
-    return '\n'.join(result)
-
-
-# generate block os XML relating to archival location
-def generateArchivalLocation(collection, **kwargs):
-    result = ['<title type="main">{0}</title>'.format(collection)]
-    for key, value in kwargs.items():
-        if value != '':
-            result.append('<bibScope type="{0}">{1}</bibscope>'.format(key, value))
-    return '\n'.join(result)
-
-
 # Prompts the user to enter the name of the UMAM or UMDM template or PID file and
 # read that file, returning the contents.
 def loadFile(fileType):
@@ -261,171 +231,159 @@ def writeFile(fileStem, content, extension):
     f.close()
 
 
-# Select time format for runtime conversions (either minutes as decimal or ISO)
-def timeFormatSelection():
-    choice = input('Enter the output time format ([H] for HHMMSS, or [M] for minutes): ')
-    while choice not in ['I', 'i', 'M', 'm']:
-        choice = input('You must enter either I or M!')
-    if choice == "M" or "m":
-        # When passed a string in the format 'HH:MM:SS', returns the decimal value in minutes,
-        # rounded to two decimal places.
-        def convertTime(inputTime):
-            hrsMinSec = inputTime.split(':')    # otherwise, split the string at the colon
-            minutes = int(hrsMinSec[0]) * 60    # multiply the first value by 60
-            minutes += int(hrsMinSec[1])        # add the second value
-            minutes += int(hrsMinSec[2]) / 60   # add the third value divided by 60
-            print('Time Conversion: ' + str(hrsMinSec) + ' = ' + str(round(minutes, 2))) # print result
-            return round(minutes, 2)            # return the resulting decimal rounded to two places
-    elif choice == "I" or "i":
-        # Convert the input time to a timedelta and return it
-        def convertTime(inputTime):
-            hh, mm, ss = map(int, inputTime.split(":"))
-            result = datetime.timedelta(hours=hh, minutes=mm, seconds=ss)
-            print('Runtime as timedelta: ' + str(result))
-            return result
-    else:
-        print("Something went wrong with the time format selection!")
-        break
+# When passed a string in the format 'HH:MM:SS', returns the decimal value in minutes,
+# rounded to two decimal places.
+def convertTime(inputTime):
+    if inputTime == "":                 # if the input string is empty, return the same string
+        return inputTime
+    hrsMinSec = inputTime.split(':')    # otherwise, split the string at the colon
+    minutes = int(hrsMinSec[0]) * 60    # multiply the first value by 60
+    minutes += int(hrsMinSec[1])        # add the second value
+    minutes += int(hrsMinSec[2]) / 60   # add the third value divided by 60
+    print('Time Conversion: ' + str(hrsMinSec) + ' = ' + str(round(minutes, 2))) # print result
+    return round(minutes, 2)            # return the resulting decimal rounded to two places
 
 
 # Performs series of find and replace operations to generate UMAM file from the template.
-def createUMAM(data, template, pid, rights, timeFormat):
+def createUMAM(data, template, pid, rights):
+    
     timeStamp = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
     convertedRunTime = convertTime(data['DurationDerivatives'])
+    
     # initialize the output starting with the specified template file
     outputfile = template
+    
     # create mapping of the metadata onto the UMAM XML template file
     umamMap = {
-                '!!!PID!!!' : 					pid,
-                '!!!ContentModel!!!' : 			'UMD_VIDEO',
-                '!!!Status!!!' : 				rights['amInfoStatus'],
-                '!!!FileName!!!' : 				data['FileName'],
-                '!!!DateDigitized!!!' : 		data['DateDigitized'],
-                '!!!DigitizedByDept!!!' : 		'Digital Conversion and Media Reformatting',
-                '!!!ExtRefDescription!!!' : 	'Sharestream',
-                '!!!SharestreamURL!!!' : 		data['SharestreamURLs'],
-                '!!!DigitizedByPers!!!' : 		data['DigitizedByPers'],
-                '!!!DigitizationNotes!!!' : 	data['DigitizationNotes'],
-                '!!!AccessRights!!!' : 			rights['adminRightsAccess'],
-                '!!!MimeType!!!' : 				'audio/mpeg',
-                '!!!Compression!!!' : 			'lossy',
-                '!!!DurationDerivatives!!!' : 	str(convertedRunTime),
-                '!!!Mono/Stereo!!!' : 			data['Mono/Stereo'],
-                '!!!TrackFormat!!!' : 			data['TrackFormat'],
-                '!!!TimeStamp!!!' : 			timeStamp
+                '!!!PID!!!' : pid,
+                '!!!ContentModel!!!' : 'UMD_VIDEO',
+                '!!!Status!!!' : rights['amInfoStatus'],
+                '!!!FileName!!!' : data['FileName'],
+                '!!!DateDigitized!!!' : data['DateDigitized'],
+                '!!!DigitizedByDept!!!' : 'Digital Conversion and Media Reformatting',
+                '!!!ExtRefDescription!!!' : 'Sharestream',
+                '!!!SharestreamURL!!!' : data['SharestreamURLs'],
+                '!!!DigitizedByPers!!!' : data['DigitizedByPers'],
+                '!!!DigitizationNotes!!!' : data['DigitizationNotes'],
+                '!!!AccessRights!!!' : rights['adminRightsAccess'],
+                '!!!MimeType!!!' : 'audio/mpeg',
+                '!!!Compression!!!' : 'lossy',
+                '!!!DurationDerivatives!!!' : str(convertedRunTime),
+                '!!!Mono/Stereo!!!' : data['Mono/Stereo'],
+                '!!!TrackFormat!!!' : data['TrackFormat'],
+                '!!!TimeStamp!!!' : timeStamp
     }
+    
     # Carry out a find and replace for each line of the data mapping
     # and convert ampersands in data into XML entities in the process
     for k, v in umamMap.items():
         outputfile = outputfile.replace(k, v.replace('&', '&amp;'))
+    
     return outputfile
 
 
 # Performs series of find and replace operations to generate UMDM file from the template.
 def createUMDM(data, template, summedRunTime, mets, pid, rights):
+    
     timeStamp = datetime.datetime.utcnow().strftime("%Y-%m-%dT%H:%M:%S.%fZ")
+    
     # Initialize the output starting with the specified template file
     outputfile = template
+    
     # Strip out trailing quotation marks from Dimensions field
     if data['Dimensions'].endswith('"'):
         data['Dimensions'] = data['Dimensions'][0:-1]
+    
     # Generate dating tags  
     dateTagString = generateDateTag(data['DateCreated'], data['DateAttribute'], data['Century'])
-    # Generate browse terms
-    browseTermsString = generateBrowseTerms(data['RepositoryBrowse'])
-    # Generate topical subjects
-    topicalSubjects = generateTopicalSubjects(  pers=data['PersonalSubject'],
-                                                corp=data['CorpSubject'],
-                                                top=data['TopicalSubject']   )
-    # Generate MediaType XML Tags
-    mediaTypeString = generateMediaTypeTag(data['MediaType'], data['FormType'], data['Form'])
-    # Generate Archival Location Information Tags
-    archivalLocation = generateArchivalLocation(collection=data['collection'],
-                                                series=data['series'],
-                                                subseries=data['subseries'],
-                                                box=data['box'],
-                                                item=data['item'],
-                                                accession=data['accession'] )
-
+    
+    # Generate browse terms from subject field
+    subjectTagString = generateBrowseTerms(data['Subjects'])
+    
     # Insert the RELS-METS section compiled from the UMAM files
     outputfile = outputfile.replace('!!!INSERT_METS_HERE!!!', mets)     # Insert the METS
     outputfile = stripAnchors(outputfile)                               # Strip out anchor points
+    
     # XML tags with which to wrap the CSV data
     XMLtags = {
-            '!!!ContentModel!!!' : 	{			'open' : '<type>',
-                                    			'close' : '</type>'	},
-            '!!!Status!!!' : {					'open' : '<status>',
-                              					'close' : '</status>' },
-            '!!!Title!!!' : {					'open' : '<title type="main">',
-                       							'close' : '</title>' },
-            '!!!AlternateTitle!!!' : {			'open' : '<title type="alternate">',
-                                      			'close' : '</title>'},
-            '!!!Contributor!!!' : {				'open' : '<agent type="contributor"><persName>',
-                                   				'close' : '</persName></agent>'},
-            '!!!Creator!!!' : {					'open' : '<agent type="creator"><persName>',
-                                    			'close' : '</persName></agent>'},
-            '!!!Provider!!!' : {				'open' : '<agent type="provider"><corpName>',
-                                				'close' : '</corpName></agent>'},
-            '!!!Identifier!!!' : {				'open' : '<identifier>',
-                                         		'close' : '</identifier>'},
-            '!!!Description/Summary!!!' : 	{	'open' : '<description type="summary">',
-                                           		'close' : '</description>'},
-            '!!!Rights!!!' : {					'open' : '<rights type="access">',
-                                         		'close' : '</rights>'},
-            '!!!CopyrightHolder!!!' : {			'open' : '<rights type="copyrightowner">',
-                                       			'close' : '</rights>'},
-            '!!!Continent!!!' : {				'open' : '<geogName type="continent">',
-                                 				'close' : '</geogName>'},
-            '!!!Country!!!' : {					'open' : '<geogName type="country">',
-            									'close' : '</geogName>'},
-            '!!!Region/State!!!' : {			'open' : '<geogName type="region">',
-                                    			'close' : '</geogName>'},
-            '!!!Settlement/City!!!' : {			'open' : '<geogName type="settlement">',
-                                       			'close' : '</geogName>'},
-            '!!!Repository!!!' : {				'open' : '<repository><corpName>',
-                                  				'close' : '</corpName></repository>'},
-            '!!!Dimensions!!!' : {				'open' : '<size units="in">',
-                                  				'close' : '</size>'},
-            '!!!DurationMasters!!!' : {			'open' : '<extent units="minutes">',
-                                       			'close' : '</extent>'},
-            '!!!Format!!!' : {			        'open' : '<format>',
-                                      			'close' : '</format>'},
-            '!!!ArchivalLocation!!!' : {		'open' : '<bibRef>',
-                                  				'close' : '</bibRef>'}
+            '!!!ContentModel!!!' : {'open' : '<type>',
+                                    'close' : '</type>'},
+            '!!!Status!!!' : {'open' : '<status>',
+                              'close' : '</status>'},
+            '!!!Title!!!' : {'open' : '<title type="main">',
+                       'close' : '</title>' },
+            '!!!AlternateTitle!!!' : {'open' : '<title type="alternate">',
+                                      'close' : '</title>'},
+            '!!!Contributor!!!' : {'open' : '<agent type="contributor"><persName>',
+                                   'close' : '</persName></agent>'},
+            '!!!Provider!!!' : {'open' : '<agent type="provider"><corpName>',
+                                'close' : '</corpName></agent>'},
+            '!!!ItemControlNumber!!!' : {'open' : '<identifier>',
+                                         'close' : '</identifier>'},
+            '!!!Description/Summary!!!' : {'open' : '<description type="summary">',
+                                           'close' : '</description>'},
+            '!!!AccessDescription!!!' : {'open' : '<rights type="access">',
+                                         'close' : '</rights>'},
+            '!!!CopyrightHolder!!!' : {'open' : '<rights type="copyrightowner">',
+                                       'close' : '</rights>'},
+            '!!!MediaType/Form!!!' : {'open' : '<mediaType type="sound"><form type="analog">',
+                                      'close' : '</form></mediaType>'},
+            '!!!Continent!!!' : {'open' : '<geogName type="continent">',
+                                 'close' : '</geogName>'},
+            '!!!Country!!!' : {'open' : '<geogName type="country">','close' : '</geogName>'},
+            '!!!Region/State!!!' : {'open' : '<geogName type="region">',
+                                    'close' : '</geogName>'},
+            '!!!Settlement/City!!!' : {'open' : '<geogName type="settlement">',
+                                       'close' : '</geogName>'},
+            '!!!Repository!!!' : {'open' : '<repository><corpName>',
+                                  'close' : '</corpName></repository>'},
+            '!!!Dimensions!!!' : {'open' : '<size units="in">',
+                                  'close' : '</size>'},
+            '!!!DurationMasters!!!' : {'open' : '<extent units="minutes">',
+                                       'close' : '</extent>'},
+            '!!!TypeOfMaterial!!!' : {'open' : '<format>',
+                                      'close' : '</format>'},
+            '!!!Collection!!!' : {'open' : '<title type="main">',
+                                  'close' : '</title>'},
+            '!!!PhysicalLocation!!!' : {'open' : '<bibScope type="box">',
+                                        'close' : '</bibScope>'},
+            '!!!AccessionNumber!!!' : {'open' : '<bibScope type="accession">',
+                                       'close' : '</bibScope>'},
             }
-
+    
     # Create mapping of the metadata onto the UMDM XML template file
     umdmMap = {
-                '!!!PID!!!' :           		pid,
-                '!!!ContentModel!!!' : 			'UMD_VIDEO',
-                '!!!Status!!!' : 				rights['doInfoStatus'],
-                '!!!Title!!!' : 				data['Title'],
-                '!!!AlternateTitle!!!' : 		data['AlternateTitle'],
-                '!!!Contributor!!!' : 			data['Contributor'],
-                '!!!Creator!!!' : 				data['Creator'],
-                '!!!Provider!!!' :  			data['Provider/Publisher'],
-                '!!!Identifier!!!' :  			data['Identifier'],
-                '!!!Description/Summary!!!' : 	data['Description/Summary'],
-                '!!!AccessDescription!!!' : 	data['Rights'],
-                '!!!CopyrightHolder!!!' : 		data['CopyrightHolder'],
-                '!!!MediaType/Form!!!' : 		mediaTypeString,
-                '!!!Continent!!!' : 			data['Continent'],
-                '!!!Country!!!' : 				data['Country'],
-                '!!!Region/State!!!' : 			data['Region/State'],
-                '!!!Settlement/City!!!' : 		data['Settlement/City'],
-                '!!!InsertDateHere!!!' : 		dateTagString,
-                '!!!Language!!!' : 				data['Language'],
-                '!!!Repository!!!' : 			data['Repository'],
-                '!!!Dimensions!!!' : 			data['Dimensions'],
-                '!!!DurationMasters!!!' : 		str(round(summedRunTime, 2)),
-                '!!!Format!!!' : 		        data['Format'],
-                '!!!RepositoryBrowse!!!' : 		browseTermsString,
-                '!!!TopicalSubjects!!!' :       topicalSubjects
-                '!!!ArchivalLocation!!!' :      archivalLocation,
-                '!!!CollectionPID!!!' : 		'umd:3392',
-                '!!!TimeStamp!!!' : 			timeStamp
+                '!!!PID!!!' : pid,
+                '!!!ContentModel!!!' : 'UMD_VIDEO',
+                '!!!Status!!!' : rights['doInfoStatus'],
+                '!!!Title!!!' : data['Title'],
+                '!!!AlternateTitle!!!' : data['AlternateTitle'],
+                '!!!Contributor!!!' : data['Contributor'],
+                '!!!Provider!!!' :  data['Provider/Publisher'],
+                '!!!ItemControlNumber!!!' : data['ItemControlNumber'],
+                '!!!Description/Summary!!!' : data['Description/Summary'],
+                '!!!AccessDescription!!!' : data['Rights'],
+                '!!!CopyrightHolder!!!' : data['CopyrightHolder'],
+                '!!!MediaType/Form!!!' : data['MediaType/Form'],
+                '!!!Continent!!!' : data['Continent'],
+                '!!!Country!!!' : data['Country'],
+                '!!!Region/State!!!' : data['Region/State'],
+                '!!!Settlement/City!!!' : data['Settlement/City'],
+                '!!!InsertDateHere!!!' : dateTagString,
+                '!!!Culture!!!' : 'American',
+                '!!!Language!!!' : 'en',
+                '!!!Repository!!!' : data['Repository'],
+                '!!!Dimensions!!!' : data['Dimensions'],
+                '!!!DurationMasters!!!' : str(round(summedRunTime, 2)),
+                '!!!TypeOfMaterial!!!' : data['TypeOfMaterial'],
+                '!!!Subjects!!!' : subjectTagString,
+                '!!!Collection!!!' : data['Collection'],
+                '!!!PhysicalLocation!!!' : data['PhysicalLocation'],
+                '!!!AccessionNumber!!!' : data['AccessionNumber'],
+                '!!!CollectionPID!!!' : 'umd:3392',
+                '!!!TimeStamp!!!' : timeStamp
     }
-
+    
     # Carry out a find and replace for each line of the data mapping
     # and convert ampersands to XML entities in the process
     for k, v in umdmMap.items():
@@ -534,10 +492,10 @@ def main():
             
             # Attach summary info to summary list, depending on XML type
             if x['XMLType'] == 'UMDM':
-                link = '"{0}","{1}","{2}","http://digital.lib.umd.edu/video?pid={2}"'.format(x['Identifier'],
+                link = '"{0}","{1}","{2}","http://digital.lib.umd.edu/video?pid={2}"'.format(x['ItemControlNumber'],
                                                                                              x['XMLType'], x['PID'])
             elif x['XMLType'] == 'UMAM':
-                link = '"{0}","{1}","{2}"'.format(x['Identifier'], x['XMLType'], x['PID'])
+                link = '"{0}","{1}","{2}"'.format(x['ItemControlNumber'], x['XMLType'], x['PID'])
             summaryList.append(link)
             
             # Check the XML type for each line, and build the FOXML files accordingly
@@ -618,9 +576,9 @@ def main():
             pidCounter += 1
             
             # Attach summary info to summary list, once for each file
-            link1 = '"{0}","{1}","{2}","http://digital.lib.umd.edu/video?pid={2}"'.format(x['Identifier'],
+            link1 = '"{0}","{1}","{2}","http://digital.lib.umd.edu/video?pid={2}"'.format(x['ItemControlNumber'],
                                                                                           'UMDM', x['umdmPID'])
-            link2 = '"{0}","{1}","{2}"'.format(x['Identifier'],
+            link2 = '"{0}","{1}","{2}"'.format(x['ItemControlNumber'],
                                                'UMAM', x['umamPID'])
             summaryList.append(link1)
             summaryList.append(link2)

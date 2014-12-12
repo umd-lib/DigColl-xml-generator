@@ -38,12 +38,11 @@
           !!!Title!!!
           !!!AlternateTitle!!!
           !!!Contributor!!!
-	      !!!Creator!!!
-	      !!!Provider!!!
-          !!!Identifier!!!
-	      !!!Description/Summary!!!
-	      !!!Rights!!!
-	      !!!CopyrightHolder!!!
+	  !!!Provider!!!
+          !!!ItemControlNumber!!!
+	  !!!Description/Summary!!!
+	  !!!AccessDescription!!!
+	  !!!CopyrightHolder!!!
           !!!MediaType/Form!!!
           <covPlace>
             !!!Continent!!!
@@ -52,20 +51,24 @@
             !!!Settlement/City!!!
           </covPlace>
           <covTime>
-	        !!!InsertDateHere!!!
+	    !!!InsertDateHere!!!
           </covTime>
-          !!!Language!!!
+          <culture>American</culture>
+          <language>en</language>
           !!!Repository!!!
           <physDesc>
             !!!Dimensions!!!
             !!!DurationMasters!!!
-            !!!Format!!!
+            !!!TypeOfMaterial!!!
           </physDesc>
-	      !!!RepositoryBrowse!!!
-	      !!!TopicalSubjects!!!
+	  !!!Subjects!!!
           <relationships>
             <relation label="archivalcollection" type="isPartOf">
-              !!!ArchivalLocation!!!
+              <bibRef>
+                !!!Collection!!!
+                !!!PhysicalLocation!!!
+                !!!AccessionNumber!!!
+              </bibRef>
             </relation>
           </relationships>
         </descMeta>
